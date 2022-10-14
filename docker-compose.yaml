@@ -1,0 +1,73 @@
+version: "2.1"
+services:
+  # syslog-ng:
+  #   image: lscr.io/linuxserver/syslog-ng:latest
+  #   container_name: syslog-ng
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Europe/London
+  #   volumes:
+  #     - ./config:/config
+  #     - ./log:/var/log #optional
+  #     - /var/lib/docker/containers:/dockerLogs
+  #   ports:
+  #     - 514:5514/udp
+  #     - 601:6601/tcp
+  #     - 6514:6514/tcp
+  #   restart: unless-stopped
+  syslog-ng:
+      image: balabit/syslog-ng
+      container_name: syslog-ng
+      # environment:
+      #   - PUID=0
+      #   - PGID=0
+      #   - TZ=Europe/London
+      volumes:
+        # - ./config:/config
+        - ./log:/var/log #optional
+        - ./config/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
+        - /var/lib/docker/containers:/dockerLogs
+      ports:
+        - 514:5514/udp
+        - 601:6601/tcp
+        - 6514:6514/tcp
+      restart: unless-stopped
+
+    # This app sends logs to Fluentd via HTTP
+  # http-myapp:
+  #   container_name: http-myapp
+  #   image: alpine
+  #   volumes:
+  #   - ./http:/app
+  #   command: [ /bin/sh , -c , "apk add --no-cache curl && chmod +x /app/app.sh && ./app/app.sh"]
+  # This app writes logs to a local file
+  file-myapp:
+    logging:
+      driver: syslog
+      options:
+        tag: docker.{{.Name}}
+        syslog-address: udp://localhost:514
+        # syslog-format: rfc5424
+    depends_on:
+      - syslog-ng
+    container_name: file-myapp
+    image: alpine
+    volumes:
+    - ./file:/app
+    command: [ /bin/sh , -c , "chmod +x /app/app.sh && ./app/app.sh"]
+
+  file-myapp2:
+    # logging:
+    #   driver: syslog
+    #   options:
+    #     tag: docker.{{.Name}}
+    #     syslog-address: udp://localhost:514
+    #     # syslog-format: rfc5424
+    depends_on:
+      - syslog-ng
+    container_name: file-myapp2
+    image: alpine
+    volumes:
+    - ./file:/app
+    command: [ /bin/sh , -c , "chmod +x /app/app.sh && ./app/app.sh"]
